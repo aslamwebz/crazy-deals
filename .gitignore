@@ -1,0 +1,81 @@
+# Dependencies
+/node_modules
+/vendor
+/frontend/node_modules
+/backend/vendor
+/backend/node_modules
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build outputs
+/dist
+/frontend/dist
+/backend/public/build
+/backend/public/hot
+/backend/public/storage
+
+# Cache and logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/backend/storage/*.key
+/backend/storage/logs/*
+/backend/storage/framework/cache/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+/coverage
+
+# Misc
+.phpunit.result.cache
+.php_cs.cache
+.php-cs-fixer.cache
+.phpunit.cache
+
+# Local development
+Homestead.json
+Homestead.yaml
+Vagrantfile
+
+# Debugbar
+/debugbar/
+
+# IDE specific files
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Local env files
+.env.local
+.env.*.local
+
+# Frontend specific
+/frontend/.env
+/frontend/.env.*
+
+# Backend specific
+/backend/.env
+/backend/.env.*

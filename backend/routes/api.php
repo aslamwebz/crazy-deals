@@ -21,6 +21,21 @@ use App\Http\Controllers\API\WishlistController;
 |
 */
 
+// Test route to verify seeders
+Route::get('/test/seeders', function() {
+    $categories = \App\Models\Category::all();
+    $featuredProducts = \App\Models\Product::where('is_featured', true)->get();
+    $flashDeals = \App\Models\Product::where('is_flash_deal', true)
+        ->where('flash_deal_ends_at', '>', now())
+        ->get();
+    
+    return response()->json([
+        'categories' => $categories->count(),
+        'featured_products' => $featuredProducts->count(),
+        'flash_deals' => $flashDeals->count(),
+    ]);
+});
+
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

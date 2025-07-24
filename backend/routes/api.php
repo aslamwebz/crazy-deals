@@ -44,13 +44,13 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/tree', [CategoryController::class, 'tree']);
-Route::get('/categories/{category}', [CategoryController::class, 'show']);
+Route::get('/categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/featured', [ProductController::class, 'featured']);
 Route::get('/products/trending', [ProductController::class, 'trending']);
 Route::get('/products/flash-deals', [ProductController::class, 'flashDeals']);
-Route::get('/products/{product}', [ProductController::class, 'show']);
+Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/products/{product}/reviews', [ReviewController::class, 'index']);
 
 // Protected routes (require authentication)

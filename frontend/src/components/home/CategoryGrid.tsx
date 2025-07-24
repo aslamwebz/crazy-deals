@@ -1,74 +1,70 @@
-
 import React from 'react';
-import { Smartphone, Shirt, Home, Sparkles, Gamepad2, Book, Car, Gift } from 'lucide-react';
+import { Smartphone, Shirt, Home, Sparkles, Gamepad2, Book, Car, Gift, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { productApi } from '@/lib/api';
+
+// Map category names to icons
+const categoryIcons: Record<string, React.ComponentType<any>> = {
+  'Electronics': Smartphone,
+  'Fashion': Shirt,
+  'Home & Garden': Home,
+  'Beauty': Sparkles,
+  'Sports': Gamepad2,
+  'Books': Book,
+  'Automotive': Car,
+  'Gifts': Gift,
+};
+
+// Color gradients for categories
+const categoryColors = [
+  'from-blue-500 to-purple-600',
+  'from-pink-500 to-rose-500',
+  'from-green-500 to-emerald-600',
+  'from-purple-500 to-pink-500',
+  'from-orange-500 to-red-500',
+  'from-yellow-500 to-amber-500',
+  'from-indigo-500 to-blue-600',
+  'from-cyan-500 to-blue-500',
+];
 
 const CategoryGrid = () => {
-  const categories = [
-    {
-      id: 1,
-      name: 'Electronics',
-      icon: Smartphone,
-      image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&h=300&fit=crop',
-      itemCount: '2.5k+ items',
-      color: 'from-blue-500 to-purple-600'
+  const { data: categories, isLoading, isError } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await productApi.getCategories();
+      return response.data.data.map((category: any, index: number) => ({
+        ...category,
+        icon: categoryIcons[category.name] || Gift,
+        color: categoryColors[index % categoryColors.length],
+        itemCount: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 9)}k+ items` // Random item count for demo
+      }));
     },
-    {
-      id: 2,
-      name: 'Fashion',
-      icon: Shirt,
-      image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=400&h=300&fit=crop',
-      itemCount: '3.2k+ items',
-      color: 'from-pink-500 to-rose-500'
-    },
-    {
-      id: 3,
-      name: 'Home & Garden',
-      icon: Home,
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop',
-      itemCount: '1.8k+ items',
-      color: 'from-green-500 to-emerald-600'
-    },
-    {
-      id: 4,
-      name: 'Beauty',
-      icon: Sparkles,
-      image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop',
-      itemCount: '1.5k+ items',
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      id: 5,
-      name: 'Sports',
-      icon: Gamepad2,
-      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300&fit=crop',
-      itemCount: '950+ items',
-      color: 'from-orange-500 to-red-500'
-    },
-    {
-      id: 6,
-      name: 'Books',
-      icon: Book,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
-      itemCount: '2.1k+ items',
-      color: 'from-amber-500 to-orange-500'
-    },
-    {
-      id: 7,
-      name: 'Automotive',
-      icon: Car,
-      image: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=400&h=300&fit=crop',
-      itemCount: '750+ items',
-      color: 'from-gray-500 to-slate-600'
-    },
-    {
-      id: 8,
-      name: 'Gifts',
-      icon: Gift,
-      image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop',
-      itemCount: '1.2k+ items',
-      color: 'from-red-500 to-pink-500'
-    }
-  ];
+  });
+
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (isError || !categories) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800">Failed to load categories</h2>
+            <p className="text-gray-600 mt-2">Please try again later</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-background">

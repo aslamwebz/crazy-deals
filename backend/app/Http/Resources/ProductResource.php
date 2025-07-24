@@ -72,7 +72,7 @@ class ProductResource extends BaseResource
             'is_flash_deal_active' => $this->is_flash_deal && 
                                      $this->flash_deal_starts_at <= now() && 
                                      $this->flash_deal_ends_at >= now(),
-            'url' => route('products.show', $this->slug),
+            'url' => url('/api/products/' . $this->slug),
             'primary_image' => $this->when($this->relationLoaded('images') && $this->images->isNotEmpty(), function () {
                 $primary = $this->images->where('is_primary', true)->first();
                 return $primary ? $primary->url : $this->images->first()->url;

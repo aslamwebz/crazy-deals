@@ -1,23 +1,21 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, Heart, ShoppingCart, Eye, Zap, Clock } from 'lucide-react';
+import { Product } from '@/types/product';
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
+// Extend the Product type with additional properties used in the card
+interface ProductCardProduct extends Product {
   originalPrice?: number;
-  image: string;
-  rating: number;
-  reviews: number;
   badge?: string;
   badgeColor?: string;
+  reviews?: number;
 }
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductCardProduct;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
@@ -39,11 +37,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       
       {/* Image container */}
       <div className="relative overflow-hidden rounded-t-3xl">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-64 object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
-        />
+        <Link to={`/products/${product.slug}`} className="block">
+          <img
+            src={product.primary_image || product.images?.[0]?.url || '/placeholder-product.jpg'}
+            alt={product.name}
+            className="w-full h-64 object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
+          />
+        </Link>
         
         {/* Animated shimmer effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -113,7 +113,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <div className="p-6 relative">
         {/* Product name */}
         <h3 className="font-bold text-lg mb-3 line-clamp-2 min-h-[3.5rem] group-hover:text-primary transition-colors duration-300">
-          {product.name}
+          <Link to={`/products/${product.slug}`} className="hover:underline">
+            {product.name}
+          </Link>
         </h3>
 
         {/* Rating */}
@@ -124,16 +126,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 <Star
                   key={i}
                   className={`h-4 w-4 transition-all duration-300 ${
-                    i < Math.floor(product.rating)
+                    i < Math.floor(product.rating || 0)
                       ? 'text-yellow-400 fill-current scale-110'
                       : 'text-gray-300'
                   }`}
-                  style={{ animationDelay: `${i * 100}ms` }}
+                  style={{ animationDelay: `${i * 100}ms` } as React.CSSProperties}
                 />
               ))}
             </div>
             <span className="text-sm text-muted-foreground font-medium">
-              {product.rating} ({product.reviews})
+              {product.rating?.toFixed(1) || '0.0'} ({product.reviews || 0})
             </span>
           </div>
           
@@ -149,17 +151,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div className="space-y-1">
             <div className="flex items-center space-x-3">
               <span className="text-2xl font-black text-primary bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                ${product.price}
+                ${product.price.toFixed(2)}
               </span>
-              {product.originalPrice && (
+              {product.compare_at_price > product.price && (
                 <span className="text-sm text-muted-foreground line-through">
-                  ${product.originalPrice}
+                  ${product.compare_at_price.toFixed(2)}
                 </span>
               )}
             </div>
-            {discount > 0 && (
+            {product.compare_at_price > product.price && (
               <p className="text-xs text-green-600 font-semibold">
-                You save ${(product.originalPrice! - product.price).toFixed(2)}
+                You save ${(product.compare_at_price - product.price).toFixed(2)}
               </p>
             )}
           </div>

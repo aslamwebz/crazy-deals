@@ -37,7 +37,7 @@ class CategoryResource extends BaseResource
                 return new CategoryResource($this->parent);
             }),
             'products_count' => $this->when(isset($this->products_count), $this->products_count),
-            'url' => route('categories.show', $this->slug),
+            'url' => url('/api/categories/' . $this->slug),
         ];
     }
 

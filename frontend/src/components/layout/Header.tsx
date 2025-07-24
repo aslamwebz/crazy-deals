@@ -1,15 +1,18 @@
-
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Menu, X, Zap, Filter } from 'lucide-react';
+import { Search, User, Menu, X, Zap, Filter, LogIn, ShoppingBag, Heart, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { CartIcon } from '../cart/CartIcon';
+import { WishlistIcon } from '../wishlist/WishlistIcon';
 
 const Header = () => {
-  const [cartCount] = useState(3);
-  const [wishlistCount] = useState(2);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth state
 
   const navItems = [
     { name: 'Electronics', icon: '⚡', trending: true },
@@ -81,27 +84,93 @@ const Header = () => {
 
           {/* Action buttons with animations */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" className="relative group hover:scale-110 transition-transform">
-              <Heart className="h-6 w-6 group-hover:fill-red-500 group-hover:text-red-500 transition-colors" />
-              {wishlistCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs animate-pulse">
-                  {wishlistCount}
-                </Badge>
-              )}
-            </Button>
+            <CartIcon />
+            <WishlistIcon />
             
-            <Button variant="ghost" size="icon" className="relative group hover:scale-110 transition-transform">
-              <ShoppingCart className="h-6 w-6 group-hover:animate-bounce" />
-              {cartCount > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-green-500 to-blue-500 animate-pulse">
-                  {cartCount}
-                </Badge>
+            {/* User Dropdown */}
+            <div className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hover:scale-110 transition-transform relative"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                onBlur={() => setTimeout(() => setIsUserMenuOpen(false), 200)}
+              >
+                <User className="h-6 w-6" />
+              </Button>
+              
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background border border-border overflow-hidden z-50">
+                  {isLoggedIn ? (
+                    <>
+                      <div className="px-4 py-3 border-b border-border">
+                        <p className="text-sm font-medium">Welcome back</p>
+                        <p className="text-sm text-muted-foreground truncate">user@example.com</p>
+                      </div>
+                      <div className="py-1">
+                        <Link 
+                          to="/account/orders" 
+                          className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-muted/50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <ShoppingBag className="mr-3 h-5 w-5 text-muted-foreground" />
+                          My Orders
+                        </Link>
+                        <Link 
+                          to="/account/wishlist" 
+                          className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-muted/50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Heart className="mr-3 h-5 w-5 text-muted-foreground" />
+                          Wishlist
+                        </Link>
+                        <Link 
+                          to="/account/settings" 
+                          className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-muted/50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Settings className="mr-3 h-5 w-5 text-muted-foreground" />
+                          Account Settings
+                        </Link>
+                      </div>
+                      <div className="border-t border-border py-1">
+                        <button
+                          className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-muted/50 flex items-center"
+                          onClick={() => {
+                            setIsLoggedIn(false);
+                            setIsUserMenuOpen(false);
+                            // TODO: Add logout logic
+                          }}
+                        >
+                          <LogOut className="mr-3 h-5 w-5" />
+                          Sign out
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-1">
+                      <Link 
+                        to="/login" 
+                        className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-muted/50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <LogIn className="mr-3 h-5 w-5 text-muted-foreground" />
+                        Sign in
+                      </Link>
+                      <Link 
+                        to="/register" 
+                        className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-muted/50"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <User className="mr-3 h-5 w-5 text-muted-foreground" />
+                        Create account
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
-            </Button>
-            
-            <Button variant="ghost" size="icon" className="hover:scale-110 transition-transform">
-              <User className="h-6 w-6" />
-            </Button>
+            </div>
           </div>
         </div>
 

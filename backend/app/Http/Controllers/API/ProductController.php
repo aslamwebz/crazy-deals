@@ -79,8 +79,12 @@ class ProductController extends Controller
         return new ProductCollection($products);
     }
 
-    public function show(Product $product)
+    public function show($identifier)
     {
+        $product = Product::where('id', $identifier)
+            ->orWhere('slug', $identifier)
+            ->firstOrFail();
+            
         $product->load([
             'category',
             'images',

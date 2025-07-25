@@ -84,16 +84,33 @@ class ProductController extends Controller
         
         switch ($sortBy) {
             case 'price':
-                $query->select('products.*')
-                    ->join('product_items as pi', 'products.default_item_id', '=', 'pi.id')
-                    ->orderBy('pi.price', $sortOrder);
+                // Sort by the product's price directly since it's stored on the products table
+                $query->orderBy('price', $sortOrder);
                 break;
+                
+            case 'price-low-high':
+                $query->orderBy('price', 'asc');
+                break;
+                
+            case 'price-high-low':
+                $query->orderBy('price', 'desc');
+                break;
+                
             case 'rating':
-                $query->orderBy('rating', $sortOrder);
+                // Calculate average rating from reviews
+                $query->withAvg('reviews as avg_rating', 'rating')
+                      ->orderBy('avg_rating', $sortOrder);
                 break;
+                
             case 'newest':
                 $query->orderBy('created_at', 'desc');
                 break;
+                
+            case 'featured':
+                $query->where('is_featured', true)
+                      ->orderBy('created_at', 'desc');
+                break;
+                
             default:
                 $query->orderBy('created_at', 'desc');
                 break;

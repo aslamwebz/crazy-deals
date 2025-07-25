@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, X, SlidersHorizontal, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -108,51 +108,109 @@ const ShopPage = () => {
     return () => clearTimeout(timer);
   }, [updateUrlParams]);
 
-  // Fetch products with filters
+  // Memoize the query key to prevent unnecessary re-renders
+  const queryKey = useMemo(() => {
+    const { search, categories, priceRange, minRating, brands, sort } = activeFilters;
+    return [
+      'products',
+      search || '',
+      categories.sort().join(','),
+      priceRange || '',
+      minRating || '',
+      brands.sort().join(','),
+      sort || 'featured',
+    ];
+  }, [activeFilters]);
+
+  // Memoize the query function to prevent unnecessary re-renders
+  const fetchProducts = useCallback(async () => {
+    try {
+      const params: ProductFilters = {
+        search: activeFilters.search || undefined,
+        categories: activeFilters.categories.length ? [...activeFilters.categories].sort() : undefined,
+        priceRange: activeFilters.priceRange || undefined,
+        minRating: activeFilters.minRating ? parseInt(activeFilters.minRating) : undefined,
+        brands: activeFilters.brands.length ? [...activeFilters.brands].sort() : undefined,
+        sort: activeFilters.sort,
+        page: 1,
+        perPage: 12,
+      };
+      
+      console.log('Fetching products with params:', JSON.stringify(params, null, 2));
+      
+      const response = await productApi.getProducts(params);
+      console.log('API Response:', JSON.stringify(response, null, 2));
+      return response;
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      const errorMessage = err.message || 'Failed to load products';
+      toast.error('Error', {
+        description: errorMessage
+      });
+      throw new Error(errorMessage);
+    }
+  }, [activeFilters]);
+
+  // Fetch products with filters (without sorting)
   const { 
-    data: productsData = { products: [], total: 0 }, 
+    data: productsResponse = { products: [], total: 0 }, 
     isLoading, 
     error, 
     isError, 
     refetch,
-    isRefetching 
+    isRefetching,
+    isPlaceholderData
   } = useQuery({
-    queryKey: ['products', searchParams.toString()],
-    queryFn: async () => {
-      try {
-        const params: ProductFilters = {
-          search: activeFilters.search || undefined,
-          categories: activeFilters.categories.length ? activeFilters.categories : undefined,
-          priceRange: activeFilters.priceRange || undefined,
-          minRating: activeFilters.minRating ? parseInt(activeFilters.minRating) : undefined,
-          brands: activeFilters.brands.length ? activeFilters.brands : undefined,
-          sort: activeFilters.sort,
-          page: 1,
-          perPage: 12,
-        };
-        
-        console.log('Fetching products with params:', JSON.stringify(params, null, 2));
-        
-        // The productApi.getProducts already handles the response structure
-        const response = await productApi.getProducts(params);
-        console.log('API Response:', JSON.stringify(response, null, 2));
-        return response;
-      } catch (err: any) {
-        console.error('Error fetching products:', err);
-        const errorMessage = err.message || 'Failed to load products';
-        toast.error('Error', {
-          description: errorMessage
-        });
-        throw new Error(errorMessage);
-      }
-    },
-    retry: 2, // Retry failed requests
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    queryKey: [
+      'products',
+      activeFilters.search || '',
+      [...activeFilters.categories].sort().join(','),
+      activeFilters.priceRange || '',
+      activeFilters.minRating || '',
+      [...activeFilters.brands].sort().join(',')
+    ],
+    queryFn: fetchProducts,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep unused/inactive data in cache for 30 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
   });
   
-  const { products = [], total = 0 } = productsData;
+  // Apply sorting to the products on the frontend
+  const { products: sortedProducts = [], total = 0 } = useMemo(() => {
+    if (!productsResponse.products.length) return { products: [], total: 0 };
+    
+    let result = [...productsResponse.products];
+    
+    // Apply sorting based on activeFilters.sort
+    switch (activeFilters.sort) {
+      case 'price-low-high':
+        result.sort((a, b) => (a.price || 0) - (b.price || 0));
+        break;
+      case 'price-high-low':
+        result.sort((a, b) => (b.price || 0) - (a.price || 0));
+        break;
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'rating-desc':
+        result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        break;
+      case 'featured':
+      default:
+        // Default sorting (featured items first, then by newest)
+        result.sort((a, b) => {
+          if (a.is_featured && !b.is_featured) return -1;
+          if (!a.is_featured && b.is_featured) return 1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+    }
+    
+    return { products: result, total: productsResponse.total };
+  }, [productsResponse, activeFilters.sort]);
 
   const handleFilterChange = (filterType: string, value: string, isChecked: boolean) => {
     setActiveFilters(prev => {
@@ -237,15 +295,19 @@ const ShopPage = () => {
                   name="sort"
                   className="rounded-md border border-input bg-background px-3 py-2 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                   value={activeFilters.sort}
-                  onChange={(e) => 
-                    setActiveFilters(prev => ({ ...prev, sort: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    // Only update the sort value, no need to refetch
+                    setActiveFilters(prev => ({
+                      ...prev,
+                      sort: e.target.value
+                    }));
+                  }}
                 >
                   <option value="featured">Featured</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
                   <option value="newest">Newest Arrivals</option>
-                  <option value="rating">Highest Rated</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                  <option value="rating-desc">Highest Rated</option>
                 </select>
               </div>
             </div>
@@ -333,7 +395,7 @@ const ShopPage = () => {
                   <div className="border-b border-border pb-6">
                     <h3 className="-my-3 flow-root">
                       <div className="flex w-full items-center justify-between bg-background py-3 text-sm text-muted-foreground hover:text-foreground">
-                        <span className="font-medium">Customer Rating</span>
+                        Showing <span className="font-medium">{Math.min(productsResponse.products.length, 12)}</span> of <span className="font-medium">{productsResponse.total}</span> products
                       </div>
                     </h3>
                     <div className="pt-4">
@@ -472,7 +534,7 @@ const ShopPage = () => {
                       <div>Search Params: <code>{searchParams.toString()}</code></div>
                       <div className="col-span-2">
                         <button 
-                          onClick={() => console.log('Current products data:', productsData)}
+                          onClick={() => console.log('Current products data:', productsResponse)}
                           className="text-blue-600 hover:underline text-xs"
                         >
                           Log products data to console
@@ -603,9 +665,9 @@ const ShopPage = () => {
                       ))}
                     </div>
                   </div>
-                ) : products && products.length > 0 ? (
+                ) : sortedProducts && sortedProducts.length > 0 ? (
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {products.map((product) => (
+                    {sortedProducts.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>

@@ -18,6 +18,7 @@ import CategoriesPage from "./pages/categories";
 import DealsPage from "./pages/deals";
 import NewArrivalsPage from "./pages/new-arrivals";
 import WishlistPage from "./pages/Wishlist";
+import ShopPage from "./pages/shop";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +114,13 @@ const App = () => (
               <Route path="/new-arrivals" element={
                 <Layout>
                   <NewArrivalsPage />
+                </Layout>
+              } />
+              
+              {/* Shop */}
+              <Route path="/shop" element={
+                <Layout>
+                  <ShopPage />
                 </Layout>
               } />
               

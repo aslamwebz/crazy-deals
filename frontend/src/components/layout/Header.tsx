@@ -15,12 +15,54 @@ const Header = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth state
 
   const navItems = [
-    { name: 'Electronics', icon: '⚡', trending: true },
-    { name: 'Fashion', icon: '👕', trending: false },
-    { name: 'Home & Garden', icon: '🏠', trending: false },
-    { name: 'Beauty', icon: '💄', trending: true },
-    { name: 'Sports', icon: '⚽', trending: false },
-    { name: 'Books', icon: '📚', trending: false }
+    { 
+      name: 'Electronics', 
+      slug: 'electronics',
+      icon: '⚡', 
+      trending: true,
+      description: 'Latest gadgets and electronics',
+      color: 'from-blue-500 to-cyan-500'
+    },
+    { 
+      name: 'Fashion', 
+      slug: 'fashion',
+      icon: '👕', 
+      trending: false,
+      description: 'Trendy clothing and accessories',
+      color: 'from-pink-500 to-rose-500'
+    },
+    { 
+      name: 'Home & Garden', 
+      slug: 'home-garden',
+      icon: '🏠', 
+      trending: false,
+      description: 'Everything for your home',
+      color: 'from-emerald-500 to-teal-500'
+    },
+    { 
+      name: 'Beauty', 
+      slug: 'beauty',
+      icon: '💄', 
+      trending: true,
+      description: 'Beauty and personal care',
+      color: 'from-purple-500 to-fuchsia-500'
+    },
+    { 
+      name: 'Sports', 
+      slug: 'sports',
+      icon: '⚽', 
+      trending: false,
+      description: 'Sports equipment and apparel',
+      color: 'from-orange-500 to-amber-500'
+    },
+    { 
+      name: 'Books', 
+      slug: 'books',
+      icon: '📚', 
+      trending: false,
+      description: 'Books and media',
+      color: 'from-indigo-500 to-violet-500'
+    }
   ];
 
   return (
@@ -178,22 +220,28 @@ const Header = () => {
         <nav className="hidden md:flex items-center justify-between py-4 border-t">
           <div className="flex items-center space-x-1">
             {navItems.map((item, index) => (
-              <Button 
-                key={item.name} 
-                variant="ghost" 
-                className="relative group hover:bg-gradient-to-r hover:from-muted to-transparent rounded-xl px-4 py-2 transition-all duration-300"
+              <Link 
+                key={item.slug}
+                to={`/shop?categories=${item.slug}`}
+                className={cn(
+                  "relative group px-4 py-2 rounded-xl transition-all duration-300 flex items-center",
+                  "hover:bg-muted/50"
+                )}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <span className="mr-2 text-lg">{item.icon}</span>
-                {item.name}
+                <span className="font-medium">{item.name}</span>
                 {item.trending && (
                   <div className="absolute -top-1 -right-1">
                     <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
                     <div className="w-2 h-2 bg-red-500 rounded-full absolute top-0"></div>
                   </div>
                 )}
-                <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-destructive to-orange-500 group-hover:w-full transition-all duration-300"></div>
-              </Button>
+                <div className={cn(
+                  "absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r transition-all duration-300 group-hover:w-full",
+                  item.color
+                )}></div>
+              </Link>
             ))}
           </div>
           
@@ -223,16 +271,89 @@ const Header = () => {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b shadow-lg">
-          <div className="container mx-auto px-4 py-6">
-            <div className="grid grid-cols-2 gap-4">
-              {navItems.map((item) => (
-                <Button key={item.name} variant="ghost" className="justify-start h-12">
-                  <span className="mr-3 text-lg">{item.icon}</span>
-                  {item.name}
-                  {item.trending && <Badge className="ml-auto text-xs">Hot</Badge>}
-                </Button>
-              ))}
+        <div 
+          className="md:hidden fixed inset-0 bg-background/95 backdrop-blur-sm z-40 pt-24"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div 
+            className="bg-background border-t border-border overflow-y-auto h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="container mx-auto px-4 py-6">
+              <h3 className="text-lg font-semibold mb-4 px-2">Shop by Category</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.slug}
+                    to={`/shop?categories=${item.slug}`}
+                    className={cn(
+                      "flex items-center p-4 rounded-lg transition-colors",
+                      "hover:bg-muted/50 border border-transparent hover:border-border"
+                    )}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <div className={cn(
+                      "w-10 h-10 rounded-full flex items-center justify-center mr-3",
+                      `bg-gradient-to-br ${item.color} text-white`
+                    )}>
+                      <span className="text-lg">{item.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <span className="font-medium">{item.name}</span>
+                        {item.trending && (
+                          <Badge variant="destructive" className="ml-2 text-xs">
+                            Hot
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="24" 
+                      height="24" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="h-4 w-4 text-muted-foreground ml-2"
+                    >
+                      <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                  </Link>
+                ))}
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-border">
+                <h3 className="text-lg font-semibold mb-4 px-2">Customer Service</h3>
+                <div className="space-y-2">
+                  <Link
+                    to="/contact"
+                    className="flex items-center p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-3 text-muted-foreground">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    Contact Us
+                  </Link>
+                  <Link
+                    to="/faq"
+                    className="flex items-center p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 mr-3 text-muted-foreground">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <path d="M12 17h.01"/>
+                    </svg>
+                    Help & FAQ
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>

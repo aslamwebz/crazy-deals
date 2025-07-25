@@ -31,11 +31,32 @@ const FlashDeals = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const { data: flashDeals, isLoading, isError } = useQuery({
+  const { data: flashDeals = [], isLoading, isError, error } = useQuery({
     queryKey: ['flashDeals'],
     queryFn: async () => {
-      const response = await productApi.getFlashDeals();
-      return response.data.data;
+      try {
+        // Make a direct fetch call to see the raw response
+        const response = await fetch('http://localhost:8084/api/products/flash-deals');
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Flash Deals API Error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText
+          });
+          throw new Error(`Failed to load flash deals: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Flash Deals API Response:', data);
+        
+        // Transform the response to match the expected format
+        return data.data || [];
+      } catch (err) {
+        console.error('Error fetching flash deals:', err);
+        throw err;
+      }
     },
   });
 
@@ -43,8 +64,12 @@ const FlashDeals = () => {
     return (
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Flash Deals</h2>
+            <div className="flex justify-center items-center h-48 bg-white rounded-lg shadow-sm border border-gray-200">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-gray-600">Loading flash deals...</span>
+            </div>
           </div>
         </div>
       </section>
@@ -56,8 +81,11 @@ const FlashDeals = () => {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-800">Failed to load flash deals</h2>
-            <p className="text-gray-600 mt-2">Please try again later</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Flash Deals</h2>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <p className="text-gray-600 mb-4">No active flash deals at the moment.</p>
+              <p className="text-sm text-gray-500">Check back later for amazing deals!</p>
+            </div>
           </div>
         </div>
       </section>

@@ -12,15 +12,7 @@ import { Product } from '@/types/product';
 import { productApi } from '@/lib/api';
 import { toast } from 'sonner';
 
-// Mock categories - replace with your actual categories
-const categories = [
-  { id: 'electronics', name: 'Electronics', count: 124 },
-  { id: 'fashion', name: 'Fashion', count: 89 },
-  { id: 'home-garden', name: 'Home & Garden', count: 45 },
-  { id: 'beauty', name: 'Beauty', count: 67 },
-  { id: 'sports', name: 'Sports', count: 32 },
-  { id: 'books', name: 'Books', count: 56 },
-];
+
 
 // Mock price ranges
 const priceRanges = [
@@ -125,9 +117,12 @@ const ShopPage = () => {
   // Memoize the query function to prevent unnecessary re-renders
   const fetchProducts = useCallback(async () => {
     try {
+      // Convert category slugs to IDs if needed
+      const categorySlugs = activeFilters.categories || [];
+      
       const params: ProductFilters = {
         search: activeFilters.search || undefined,
-        categories: activeFilters.categories.length ? [...activeFilters.categories].sort() : undefined,
+        categories: categorySlugs.length ? categorySlugs : undefined,
         priceRange: activeFilters.priceRange || undefined,
         minRating: activeFilters.minRating ? parseInt(activeFilters.minRating) : undefined,
         brands: activeFilters.brands.length ? [...activeFilters.brands].sort() : undefined,
@@ -152,6 +147,22 @@ const ShopPage = () => {
   }, [activeFilters]);
 
   // Fetch products with filters (without sorting)
+  // Fetch categories from the backend
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const response = await productApi.getCategories();
+        return response || [];
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch products with filters
   const { 
     data: productsResponse = { products: [], total: 0 }, 
     isLoading, 
@@ -212,21 +223,23 @@ const ShopPage = () => {
     return { products: result, total: productsResponse.total };
   }, [productsResponse, activeFilters.sort]);
 
-  const handleFilterChange = (filterType: string, value: string, isChecked: boolean) => {
+  const handleFilterChange = (filterType: string, value: string | number, isChecked: boolean) => {
     setActiveFilters(prev => {
       if (filterType === 'categories' || filterType === 'brands') {
-        const currentValues = [...prev[filterType]];
+        const currentValues = [...prev[filterType]] as string[];
+        const stringValue = String(value);
         if (isChecked) {
-          currentValues.push(value);
+          currentValues.push(stringValue);
         } else {
-          const index = currentValues.indexOf(value);
+          const index = currentValues.indexOf(stringValue);
           if (index > -1) {
             currentValues.splice(index, 1);
           }
         }
         return { ...prev, [filterType]: currentValues };
+      } else {
+        return { ...prev, [filterType]: isChecked ? String(value) : '' };
       }
-      return { ...prev, [filterType]: isChecked ? value : '' };
     });
   };
 
@@ -340,23 +353,40 @@ const ShopPage = () => {
                     </h3>
                     <div className="pt-4">
                       <div className="space-y-2">
-                        {categories.map((category) => (
-                          <div key={category.id} className="flex items-center">
-                            <Checkbox
-                              id={`category-${category.id}`}
-                              checked={activeFilters.categories.includes(category.id)}
-                              onCheckedChange={(checked) => 
-                                handleFilterChange('categories', category.id, checked as boolean)
-                              }
-                            />
-                            <label
-                              htmlFor={`category-${category.id}`}
-                              className="ml-3 text-sm text-muted-foreground"
-                            >
-                              {category.name} <span className="text-xs text-muted-foreground/60">({category.count})</span>
-                            </label>
-                          </div>
-                        ))}
+                        {isLoadingCategories ? (
+                          // Skeleton loader for categories
+                          Array.from({ length: 6 }).map((_, index) => (
+                            <div key={index} className="flex items-center space-x-3">
+                              <div className="h-4 w-4 bg-muted rounded animate-pulse"></div>
+                              <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
+                            </div>
+                          ))
+                        ) : categories.length > 0 ? (
+                          categories.map((category) => (
+                            <div key={category.slug} className="flex items-center">
+                              <Checkbox
+                                id={`category-${category.slug}`}
+                                checked={activeFilters.categories.includes(category.slug)}
+                                onCheckedChange={(checked) => 
+                                  handleFilterChange('categories', category.slug, checked as boolean)
+                                }
+                              />
+                              <label
+                                htmlFor={`category-${category.slug}`}
+                                className="ml-3 text-sm text-muted-foreground"
+                              >
+                                {category.name} 
+                                {category.products_count !== undefined && (
+                                  <span className="text-xs text-muted-foreground/60">
+                                    ({category.products_count})
+                                  </span>
+                                )}
+                              </label>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No categories found</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -551,20 +581,20 @@ const ShopPage = () => {
                       <span className="text-sm font-medium">Active filters:</span>
                       
                       {/* Category filters */}
-                      {activeFilters.categories.map((categoryId) => {
-                        const category = categories.find(c => c.id === categoryId);
+                      {activeFilters.categories.map((categorySlug) => {
+                        const category = categories.find(c => c.slug === categorySlug);
                         if (!category) return null;
                         
                         return (
                           <span
-                            key={`cat-${categoryId}`}
+                            key={`cat-${categorySlug}`}
                             className="inline-flex items-center rounded-full border border-border bg-background px-3 py-1 text-sm text-foreground"
                           >
                             {category.name}
                             <button
                               type="button"
                               className="ml-1.5 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                              onClick={() => handleFilterChange('categories', categoryId, false)}
+                              onClick={() => handleFilterChange('categories', categorySlug, false)}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -762,19 +792,24 @@ const ShopPage = () => {
                   <div className="pt-4">
                     <div className="space-y-2">
                       {categories.map((category) => (
-                        <div key={category.id} className="flex items-center">
+                        <div key={category.slug} className="flex items-center">
                           <Checkbox
-                            id={`mobile-category-${category.id}`}
-                            checked={activeFilters.categories.includes(category.id)}
+                            id={`mobile-category-${category.slug}`}
+                            checked={activeFilters.categories.includes(category.slug)}
                             onCheckedChange={(checked) => 
-                              handleFilterChange('categories', category.id, checked as boolean)
+                              handleFilterChange('categories', category.slug, checked as boolean)
                             }
                           />
                           <label
                             htmlFor={`mobile-category-${category.id}`}
                             className="ml-3 text-sm text-muted-foreground"
                           >
-                            {category.name} <span className="text-xs text-muted-foreground/60">({category.count})</span>
+                            {category.name} 
+                            {category.products_count !== undefined && (
+                              <span className="text-xs text-muted-foreground/60">
+                                ({category.products_count})
+                              </span>
+                            )}
                           </label>
                         </div>
                       ))}

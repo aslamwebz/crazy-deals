@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,8 +21,11 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isHovered, setIsHovered] = useState(false);
+  
+  const isWishlisted = isInWishlist(product.id);
   
   const discount = product.originalPrice 
     ? Math.round((1 - product.price / product.originalPrice) * 100)
@@ -69,13 +74,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             size="icon"
             variant="ghost"
             className={`w-10 h-10 rounded-full backdrop-blur-sm border border-white/20 transition-all duration-300 ${
-              isLiked 
+              isWishlisted 
                 ? 'bg-red-500 text-white hover:bg-red-600' 
                 : 'bg-white/80 hover:bg-white text-black hover:scale-110'
             } ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'}`}
-            onClick={() => setIsLiked(!isLiked)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isWishlisted) {
+                removeFromWishlist(product.id);
+              } else {
+                addToWishlist(product);
+              }
+            }}
           >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''} transition-all duration-300`} />
+            <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''} transition-all duration-300`} />
           </Button>
           
           <Button
@@ -94,7 +107,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <div className={`absolute inset-x-4 bottom-4 transition-all duration-500 ${
           isHovered ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
         }`}>
-          <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105">
+          <Button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              addToCart(product);
+            }}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+          >
             <ShoppingCart className="h-4 w-4 mr-2" />
             Quick Add to Cart
           </Button>

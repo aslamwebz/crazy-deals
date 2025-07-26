@@ -9,12 +9,14 @@ import { productApi } from '@/lib/api';
 import { useCart } from '@/contexts/CartContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const FlashDeals = () => {
   const { addToCart, isInCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [wishlistLoading, setWishlistLoading] = useState<number | null>(null);
+  const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState({
     hours: 12,
     minutes: 34,
@@ -264,7 +266,12 @@ const FlashDeals = () => {
         </div>
         
         <div className="text-center mt-8">
-          <Button variant="outline" size="lg">
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => navigate('/deals')}
+            className="bg-white hover:bg-gray-50 border-destructive text-destructive hover:text-destructive/90"
+          >
             View All Flash Deals
           </Button>
         </div>

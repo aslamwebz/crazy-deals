@@ -6,8 +6,15 @@ import { Clock, Heart, ShoppingCart, Loader2 } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
 import { useQuery } from '@tanstack/react-query';
 import { productApi } from '@/lib/api';
+import { useCart } from '@/contexts/CartContext';
+import { useWishlist } from '@/contexts/WishlistContext';
+import { toast } from 'sonner';
 
 const FlashDeals = () => {
+  const { addToCart, isInCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [wishlistLoading, setWishlistLoading] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState({
     hours: 12,
     minutes: 34,
@@ -129,11 +136,18 @@ const FlashDeals = () => {
             return (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative">
-                  <img 
-                    src={imageUrl} 
-                    alt={product.name}
-                    className="w-full h-48 object-cover"
-                  />
+                  <div className="w-full h-48 relative">
+                    <img 
+                      src={imageUrl} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to a placeholder if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/300x300?text=No+Image';
+                      }}
+                    />
+                  </div>
                   {discount > 0 && (
                     <Badge className="absolute top-2 left-2 bg-destructive">
                       -{discount}%
@@ -142,23 +156,65 @@ const FlashDeals = () => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                    className="absolute top-2 right-2 bg-white/80 hover:bg-white p-1.5"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setWishlistLoading(product.id);
+                      try {
+                        if (isInWishlist(product.id)) {
+                          await removeFromWishlist(product.id);
+                          toast.success('Removed from wishlist');
+                        } else {
+                          await addToWishlist(product);
+                          toast.success('Added to wishlist');
+                        }
+                      } catch (error) {
+                        console.error('Error updating wishlist:', error);
+                        toast.error('Failed to update wishlist');
+                      } finally {
+                        setWishlistLoading(null);
+                      }
+                    }}
+                    disabled={wishlistLoading === product.id}
                   >
-                    <Heart className="h-4 w-4" />
+                    {wishlistLoading === product.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Heart 
+                        className={`h-4 w-4 ${isInWishlist(product.id) ? 'fill-destructive text-destructive' : ''}`} 
+                      />
+                    )}
                   </Button>
                 </div>
                 
                 <div className="p-4">
-                  <h3 className="font-semibold mb-2 line-clamp-1">{product.name}</h3>
+                  <div className="mb-2">
+                    <h3 className="font-semibold text-sm line-clamp-1">{product.name}</h3>
+                    {product.brand && (
+                      <p className="text-xs text-muted-foreground">{product.brand}</p>
+                    )}
+                  </div>
                   
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="text-xl font-bold text-destructive">
-                      ${product.price}
-                    </span>
-                    {product.compare_at_price > product.price && (
-                      <span className="text-sm text-muted-foreground line-through">
-                        ${product.compare_at_price}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-lg font-bold text-destructive">
+                        ${product.price.toFixed(2)}
                       </span>
+                      {product.compare_at_price > product.price && (
+                        <span className="text-xs text-muted-foreground line-through">
+                          ${product.compare_at_price.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    {product.rating > 0 && (
+                      <div className="flex items-center text-xs bg-muted px-1.5 py-0.5 rounded">
+                        <span className="text-yellow-500">★</span>
+                        <span className="ml-0.5">{product.rating.toFixed(1)}</span>
+                        {product.reviews_count > 0 && (
+                          <span className="text-muted-foreground ml-1">({product.reviews_count})</span>
+                        )}
+                      </div>
                     )}
                   </div>
                   
@@ -171,9 +227,35 @@ const FlashDeals = () => {
                     <Progress value={product.total_quantity > 0 ? ((product.sold_quantity || 0) / product.total_quantity) * 100 : 0} />
                   </div>
                   
-                  <Button className="w-full" size="sm">
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
+                  <Button 
+                    className="w-full" 
+                    size="sm"
+                    disabled={addingToCart === product.id}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      setAddingToCart(product.id);
+                      try {
+                        await addToCart(product);
+                        toast.success(`${product.name} added to cart`);
+                      } catch (error) {
+                        console.error('Error adding to cart:', error);
+                        toast.error('Failed to add item to cart');
+                      } finally {
+                        setAddingToCart(null);
+                      }
+                    }}
+                  >
+                    {addingToCart === product.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        {isInCart(product.id) ? 'In Cart' : 'Add to Cart'}
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

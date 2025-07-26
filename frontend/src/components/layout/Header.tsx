@@ -107,18 +107,18 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b shadow-lg">
       {/* Flash banner */}
-      <div className="bg-gradient-to-r from-destructive via-red-500 to-orange-500 text-white text-center py-2 text-sm font-bold relative overflow-hidden">
+      <div className="bg-gradient-to-r from-destructive via-red-500 to-orange-500 text-white text-center py-1.5 text-xs font-bold relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-        <div className="relative flex items-center justify-center gap-2">
-          <Zap className="h-4 w-4 animate-bounce" />
-          🔥 MEGA FLASH SALE: Up to 90% OFF - Limited Time Only!
-          <Zap className="h-4 w-4 animate-bounce" />
+        <div className="relative flex items-center justify-center gap-1.5">
+          <Zap className="h-3 w-3 animate-bounce" />
+          <span className="text-[0.7rem]">🔥 MEGA FLASH SALE: Up to 90% OFF - Limited Time!</span>
+          <Zap className="h-3 w-3 animate-bounce" />
         </div>
       </div>
       
       {/* Main header */}
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between h-16">
           {/* Logo with custom design */}
           <div className="flex items-center space-x-4">
             <Button 
@@ -133,12 +133,12 @@ const Header = () => {
               </div>
             </Button>
             
-            <div className="relative group cursor-pointer">
+            <Link to="/" className="relative group">
               <div className="absolute -inset-2 bg-gradient-to-r from-destructive to-orange-500 rounded-lg blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
-              <h1 className="relative text-3xl font-black bg-gradient-to-r from-destructive to-orange-500 bg-clip-text text-transparent">
+              <h1 className="relative text-2xl font-black bg-gradient-to-r from-destructive to-orange-500 bg-clip-text text-transparent">
                 Crazy<span className="text-foreground">Deals</span>
               </h1>
-            </div>
+            </Link>
           </div>
 
           {/* Enhanced search bar */}
@@ -148,14 +148,14 @@ const Header = () => {
               <div className="relative flex">
                 <Input 
                   placeholder="Search 1M+ products, brands, deals..."
-                  className="pl-12 pr-20 h-12 rounded-full border-2 bg-muted/50 focus:bg-background transition-all"
+                  className="pl-10 pr-16 h-10 text-sm rounded-full border-2 bg-muted/50 focus:bg-background transition-all"
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
                 />
-                <Search className="absolute left-4 top-3 h-6 w-6 text-muted-foreground" />
-                <div className="absolute right-2 top-2 flex space-x-1">
-                  <Button size="sm" className="rounded-full h-8 px-3">
-                    <Filter className="h-4 w-4 mr-1" />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <div className="absolute right-1.5 top-1.5">
+                  <Button size="sm" className="rounded-full h-7 px-2 text-xs">
+                    <Filter className="h-3 w-3 mr-1" />
                     Filter
                   </Button>
                 </div>
@@ -177,7 +177,7 @@ const Header = () => {
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 onBlur={() => setTimeout(() => setIsUserMenuOpen(false), 200)}
               >
-                <User className="h-6 w-6" />
+                <User className="h-5 w-5" />
               </Button>
               
               {/* Dropdown Menu */}
@@ -255,15 +255,15 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Enhanced navigation */}
-        <nav className="hidden md:flex items-center justify-between py-4 border-t">
-          <div className="flex items-center space-x-1">
+        {/* Enhanced navigation - Reduced padding */}
+        <nav className="hidden md:flex items-center justify-between py-2 border-t">
+          <div className="flex items-center space-x-0.5">
             {isLoading ? (
               // Skeleton loaders while categories are loading
               Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="flex items-center px-4 py-2">
-                  <Skeleton className="h-6 w-6 rounded-full mr-2" />
-                  <Skeleton className="h-5 w-20" />
+                <div key={index} className="flex items-center px-3 py-1.5">
+                  <Skeleton className="h-5 w-5 rounded-full mr-1.5" />
+                  <Skeleton className="h-4 w-16" />
                 </div>
               ))
             ) : (
@@ -273,21 +273,21 @@ const Header = () => {
                   key={item.slug}
                   to={`/shop?categories=${item.slug}`}
                   className={cn(
-                    "relative group px-4 py-2 rounded-xl transition-all duration-300 flex items-center",
-                    "hover:bg-muted/50"
+                    "relative group px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center",
+                    "hover:bg-muted/40"
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <span className="mr-2 text-lg">{item.icon}</span>
-                  <span className="font-medium">{item.name}</span>
+                  <span className="mr-1.5 text-base">{item.icon}</span>
+                  <span className="font-medium text-sm">{item.name}</span>
                   {item.trending && (
-                    <div className="absolute -top-1 -right-1">
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-                      <div className="w-2 h-2 bg-red-500 rounded-full absolute top-0"></div>
+                    <div className="absolute -top-0.5 -right-0.5">
+                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div>
+                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full absolute top-0"></div>
                     </div>
                   )}
                   <div className={cn(
-                    "absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r transition-all duration-300 group-hover:w-full",
+                    "absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r transition-all duration-200 group-hover:w-full",
                     item.color
                   )}></div>
                 </Link>
@@ -295,13 +295,13 @@ const Header = () => {
             )}
           </div>
           
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+          <div className="flex items-center space-x-3 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
               <span>Free Shipping $50+</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
               <span>24/7 Support</span>
             </div>
           </div>

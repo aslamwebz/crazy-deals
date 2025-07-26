@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Play, Star, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Star, Zap, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -13,6 +14,7 @@ const Hero = () => {
       subtitle: "Up to 90% OFF Everything",
       description: "The biggest deals of the year are here! Don't miss out on incredible savings across all categories.",
       cta: "Shop Now",
+      ctaLink: "/deals",
       image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1920&h=1080&fit=crop&crop=center",
       price: "Starting at $9.99",
       originalPrice: "$99.99",
@@ -24,6 +26,7 @@ const Hero = () => {
       subtitle: "Latest Electronics at Unbeatable Prices",
       description: "iPhone 15, MacBook Pro, Samsung Galaxy and more with up to 70% off retail prices.",
       cta: "Explore Tech",
+      ctaLink: "/shop?categories=electronics",
       image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1920&h=1080&fit=crop&crop=center",
       price: "From $199",
       originalPrice: "$899",
@@ -35,6 +38,7 @@ const Hero = () => {
       subtitle: "Trendy Styles, Crazy Prices",
       description: "Refresh your wardrobe with the latest fashion trends at prices that won't break the bank.",
       cta: "Shop Fashion",
+      ctaLink: "/shop?categories=clothing",
       image: "https://images.unsplash.com/photo-1581338834647-b0fb40704e21?w=1920&h=1080&fit=crop&crop=center",
       price: "Up to 85% OFF",
       originalPrice: "Retail Price",
@@ -147,22 +151,27 @@ const Hero = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center space-x-4 pt-4">
-                    <Button 
-                      size="lg" 
-                      className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold px-8 py-4 rounded-full text-lg shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300 hover:scale-105"
-                    >
-                      <Play className="h-5 w-5 mr-2 fill-current" />
-                      {slide.cta}
-                    </Button>
+                  <div className="flex flex-wrap gap-4 pt-6">
+                    <Link to={slide.ctaLink} className="inline-flex items-center">
+                      <Button 
+                        size="lg" 
+                        className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold px-8 py-4 rounded-full text-lg shadow-2xl hover:shadow-yellow-500/25 transition-all duration-300 hover:scale-105"
+                      >
+                        <Play className="h-5 w-5 mr-2 fill-current" />
+                        {slide.cta}
+                      </Button>
+                    </Link>
                     
-                    <Button 
-                      size="lg" 
-                      variant="outline" 
-                      className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-full text-lg backdrop-blur-sm"
-                    >
-                      View All Deals
-                    </Button>
+                    <Link to="/deals" className="inline-flex items-center">
+                      <Button 
+                        size="lg" 
+                        variant="outline" 
+                        className="border-2 border-white/30 bg-black/30 hover:bg-white/20 text-white hover:text-white px-8 py-4 rounded-full text-lg backdrop-blur-sm group transition-all duration-300"
+                      >
+                        View All Deals
+                        <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>

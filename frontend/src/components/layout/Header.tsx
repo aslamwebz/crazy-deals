@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, User, Menu, X, Zap, Filter, LogIn, ShoppingBag, Heart, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,37 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { CartIcon } from '../cart/CartIcon';
 import { WishlistIcon } from '../wishlist/WishlistIcon';
+import { productApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+
+// Define the category type
+interface CategoryItem {
+  id: number;
+  name: string;
+  slug: string;
+  icon: string;
+  color: string;
+  is_active: boolean;
+  order: number;
+  trending?: boolean;
+  description?: string;
+}
+
+// Default categories that will be shown while loading
+const defaultCategories: CategoryItem[] = [
+  { 
+    id: 1,
+    name: 'Loading...',
+    slug: 'loading',
+    icon: '⏳',
+    color: 'from-gray-200 to-gray-300',
+    is_active: true,
+    order: 1,
+    trending: false,
+    description: 'Loading categories...'
+  }
+];
 
 const Header = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -14,56 +45,64 @@ const Header = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth state
 
-  const navItems = [
-    { 
-      name: 'Electronics', 
-      slug: 'electronics',
-      icon: '⚡', 
-      trending: true,
-      description: 'Latest gadgets and electronics',
-      color: 'from-blue-500 to-cyan-500'
+  // Fetch categories from the backend
+  const { data: categories = defaultCategories, isLoading } = useQuery<CategoryItem[]>({
+    queryKey: ['header-categories'],
+    queryFn: async () => {
+      try {
+        const data = await productApi.getCategories();
+        // Map the API response to match our expected format
+        return data.map((category: any) => ({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          icon: getCategoryIcon(category.slug),
+          trending: Math.random() > 0.7, // Randomly mark some as trending for demo
+          description: category.description || `${category.name} products`,
+          color: category.color || getDefaultColor(category.slug),
+          is_active: category.is_active !== false, // Ensure boolean
+          order: category.order || 99
+        }));
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return defaultCategories;
+      }
     },
-    { 
-      name: 'Fashion', 
-      slug: 'fashion',
-      icon: '👕', 
-      trending: false,
-      description: 'Trendy clothing and accessories',
-      color: 'from-pink-500 to-rose-500'
-    },
-    { 
-      name: 'Home & Garden', 
-      slug: 'home-garden',
-      icon: '🏠', 
-      trending: false,
-      description: 'Everything for your home',
-      color: 'from-emerald-500 to-teal-500'
-    },
-    { 
-      name: 'Beauty', 
-      slug: 'beauty',
-      icon: '💄', 
-      trending: true,
-      description: 'Beauty and personal care',
-      color: 'from-purple-500 to-fuchsia-500'
-    },
-    { 
-      name: 'Sports', 
-      slug: 'sports',
-      icon: '⚽', 
-      trending: false,
-      description: 'Sports equipment and apparel',
-      color: 'from-orange-500 to-amber-500'
-    },
-    { 
-      name: 'Books', 
-      slug: 'books',
-      icon: '📚', 
-      trending: false,
-      description: 'Books and media',
-      color: 'from-indigo-500 to-violet-500'
-    }
-  ];
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Helper function to get an icon based on category slug
+  const getCategoryIcon = (slug: string) => {
+    const icons: Record<string, string> = {
+      electronics: '⚡',
+      fashion: '👕',
+      'home-garden': '🏠',
+      beauty: '💄',
+      sports: '⚽',
+      books: '📚',
+      default: '🛍️'
+    };
+    return icons[slug] || icons.default;
+  };
+
+  // Helper function to get a default color gradient based on slug
+  const getDefaultColor = (slug: string) => {
+    const colors: Record<string, string> = {
+      electronics: 'from-blue-500 to-cyan-500',
+      fashion: 'from-pink-500 to-rose-500',
+      'home-garden': 'from-emerald-500 to-teal-500',
+      beauty: 'from-purple-500 to-fuchsia-500',
+      sports: 'from-orange-500 to-amber-500',
+      books: 'from-indigo-500 to-violet-500',
+      default: 'from-gray-500 to-slate-500'
+    };
+    return colors[slug] || colors.default;
+  };
+
+  // Sort categories by order and filter out inactive ones
+  const sortedCategories = [...categories]
+    .filter((category): category is CategoryItem => category.is_active !== false)
+    .sort((a, b) => (a.order || 99) - (b.order || 99));
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b shadow-lg">
@@ -219,30 +258,41 @@ const Header = () => {
         {/* Enhanced navigation */}
         <nav className="hidden md:flex items-center justify-between py-4 border-t">
           <div className="flex items-center space-x-1">
-            {navItems.map((item, index) => (
-              <Link 
-                key={item.slug}
-                to={`/shop?categories=${item.slug}`}
-                className={cn(
-                  "relative group px-4 py-2 rounded-xl transition-all duration-300 flex items-center",
-                  "hover:bg-muted/50"
-                )}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <span className="mr-2 text-lg">{item.icon}</span>
-                <span className="font-medium">{item.name}</span>
-                {item.trending && (
-                  <div className="absolute -top-1 -right-1">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-                    <div className="w-2 h-2 bg-red-500 rounded-full absolute top-0"></div>
-                  </div>
-                )}
-                <div className={cn(
-                  "absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r transition-all duration-300 group-hover:w-full",
-                  item.color
-                )}></div>
-              </Link>
-            ))}
+            {isLoading ? (
+              // Skeleton loaders while categories are loading
+              Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="flex items-center px-4 py-2">
+                  <Skeleton className="h-6 w-6 rounded-full mr-2" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              ))
+            ) : (
+              // Render actual categories when loaded
+              sortedCategories.map((item, index) => (
+                <Link 
+                  key={item.slug}
+                  to={`/shop?categories=${item.slug}`}
+                  className={cn(
+                    "relative group px-4 py-2 rounded-xl transition-all duration-300 flex items-center",
+                    "hover:bg-muted/50"
+                  )}
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <span className="mr-2 text-lg">{item.icon}</span>
+                  <span className="font-medium">{item.name}</span>
+                  {item.trending && (
+                    <div className="absolute -top-1 -right-1">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                      <div className="w-2 h-2 bg-red-500 rounded-full absolute top-0"></div>
+                    </div>
+                  )}
+                  <div className={cn(
+                    "absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r transition-all duration-300 group-hover:w-full",
+                    item.color
+                  )}></div>
+                </Link>
+              ))
+            )}
           </div>
           
           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -282,49 +332,62 @@ const Header = () => {
             <div className="container mx-auto px-4 py-6">
               <h3 className="text-lg font-semibold mb-4 px-2">Shop by Category</h3>
               <div className="grid grid-cols-1 gap-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.slug}
-                    to={`/shop?categories=${item.slug}`}
-                    className={cn(
-                      "flex items-center p-4 rounded-lg transition-colors",
-                      "hover:bg-muted/50 border border-transparent hover:border-border"
-                    )}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center mr-3",
-                      `bg-gradient-to-br ${item.color} text-white`
-                    )}>
-                      <span className="text-lg">{item.icon}</span>
+                {isLoading ? (
+                  // Skeleton loaders for mobile menu
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="flex items-center p-4 rounded-lg">
+                      <Skeleton className="w-10 h-10 rounded-full mr-3" />
+                      <div className="flex-1">
+                        <Skeleton className="h-5 w-32 mb-2" />
+                        <Skeleton className="h-4 w-48" />
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <span className="font-medium">{item.name}</span>
-                        {item.trending && (
-                          <Badge variant="destructive" className="ml-2 text-xs">
-                            Hot
-                          </Badge>
+                  ))
+                ) : (
+                  // Render actual categories when loaded
+                  sortedCategories.map((item) => (
+                    <Link
+                      key={item.slug}
+                      to={`/shop?categories=${item.slug}`}
+                      className="flex items-center p-4 rounded-lg hover:bg-muted/50 transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center mr-3",
+                        `bg-gradient-to-br ${item.color} text-white`
+                      )}>
+                        <span className="text-lg">{item.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <span className="font-medium">{item.name}</span>
+                          {item.trending && (
+                            <Badge variant="destructive" className="ml-2 text-xs">
+                              Hot
+                            </Badge>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="24" 
-                      height="24" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                      className="h-4 w-4 text-muted-foreground ml-2"
-                    >
-                      <path d="m9 18 6-6-6-6"/>
-                    </svg>
-                  </Link>
-                ))}
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="24" 
+                        height="24" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        className="w-5 h-5 text-muted-foreground ml-auto"
+                      >
+                        <path d="m9 18 6-6-6-6"/>
+                      </svg>
+                    </Link>
+                  ))
+                )}
               </div>
               
               <div className="mt-8 pt-6 border-t border-border">

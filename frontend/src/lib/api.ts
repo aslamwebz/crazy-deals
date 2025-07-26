@@ -99,8 +99,8 @@ export const productApi = {
     // Add filters to params
     if (filters.search) params.append('search', filters.search);
     if (filters.categories?.length) params.append('categories', filters.categories.join(','));
-    if (filters.priceRange) params.append('price_range', filters.priceRange);
-    if (filters.minRating) params.append('min_rating', filters.minRating.toString());
+    if (filters.priceRange) params.append('priceRange', filters.priceRange);
+    if (filters.minRating) params.append('minRating', filters.minRating.toString());
     if (filters.brands?.length) params.append('brands', filters.brands.join(','));
     if (filters.sort) params.append('sort', filters.sort);
     if (filters.page) params.append('page', filters.page.toString());

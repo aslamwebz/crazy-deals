@@ -155,7 +155,8 @@ const Header = () => {
     setSearchQuery('');
     setShowSearchResults(false);
     if (isCategory) {
-      navigate(`/shop?category=${slug}`);
+      // Use 'categories' parameter to match Shop page's expected format
+      navigate(`/shop?categories=${encodeURIComponent(slug)}`);
     } else {
       navigate(`/product/${slug}`);
     }
@@ -319,7 +320,7 @@ const Header = () => {
                         {/* View All Results Link */}
                         <div className="p-3 border-t border-border bg-muted/10">
                           <Link 
-                            to={`/shop?q=${encodeURIComponent(searchQuery)}`} 
+                            to={`/shop?search=${encodeURIComponent(searchQuery)}`} 
                             className="text-sm font-medium text-primary flex items-center justify-center"
                             onClick={() => setShowSearchResults(false)}
                           >

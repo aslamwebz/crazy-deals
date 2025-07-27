@@ -43,6 +43,25 @@ const brands = [
 const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  
+  // Reset scroll position when component mounts or filters change
+  useEffect(() => {
+    // Check if we should scroll to top (from session storage)
+    const shouldScrollToTop = sessionStorage.getItem('shouldScrollToTop');
+    
+    if (shouldScrollToTop === 'true') {
+      // Scroll to top
+      window.scrollTo(0, 0);
+      // Clear the flag
+      sessionStorage.removeItem('shouldScrollToTop');
+    }
+    
+    // Also ensure we're at the top on initial load
+    const isInitialLoad = !searchParams.toString();
+    if (isInitialLoad) {
+      window.scrollTo(0, 0);
+    }
+  }, [searchParams]);
   const [activeFilters, setActiveFilters] = useState({
     categories: searchParams.get('categories')?.split(',') || [],
     priceRange: searchParams.get('priceRange') || '',

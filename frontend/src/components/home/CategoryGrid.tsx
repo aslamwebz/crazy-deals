@@ -1,7 +1,32 @@
 import React from 'react';
-import { Smartphone, Shirt, Home, Sparkles, Gamepad2, Book, Car, Gift, Loader2 } from 'lucide-react';
+import { Smartphone, Shirt, Home, Sparkles, Gamepad2, Book, Car, Gift, Loader2, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { productApi } from '@/lib/api';
+
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  icon: React.ComponentType<any>;
+  color: string;
+  itemCount: string;
+};
+
+type ApiResponse = {
+  success: boolean;
+  message: string;
+  data: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    description: string;
+    image: string;
+  }>;
+};
 
 // Map category names to icons
 const categoryIcons: Record<string, React.ComponentType<any>> = {
@@ -28,83 +53,92 @@ const categoryColors = [
 ];
 
 const CategoryGrid = () => {
-  const { data: categories = [], isLoading, isError, error } = useQuery({
+  const navigate = useNavigate();
+  
+  const { data: categories = [], isLoading, isError, error } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: async () => {
       try {
-        // Make a direct fetch call to see the raw response
-        const response = await fetch('http://localhost:8084/api/categories');
+        const response = await productApi.getCategories() as unknown as ApiResponse;
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Categories API Error:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText
-          });
-          throw new Error(`Failed to load categories: ${response.status} ${response.statusText}`);
+        if (!response?.success) {
+          throw new Error(response?.message || 'Failed to load categories');
         }
         
-        const data = await response.json();
-        console.log('Categories API Response:', data);
+        if (!Array.isArray(response.data)) {
+          throw new Error('Invalid categories data format');
+        }
         
-        // Transform the response to match the expected format
-        return (data.data || []).map((category: any, index: number) => ({
+        return response.data.map((category, index) => ({
           ...category,
           icon: categoryIcons[category.name] || Gift,
           color: categoryColors[index % categoryColors.length],
-          itemCount: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 9)}k+ items` // Random item count for demo
+          itemCount: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 9)}k+ items`
         }));
       } catch (err) {
         console.error('Error fetching categories:', err);
-        throw err;
+        throw new Error(err instanceof Error ? err.message : 'Failed to load categories. Please try again later.');
       }
     },
-    retry: 2, // Retry failed requests
-    refetchOnWindowFocus: false // Don't refetch when window regains focus
+    retry: 2,
+    refetchOnWindowFocus: false
   });
+  
+  const handleCategoryClick = (slug: string) => {
+    // Store scroll position in session storage before navigation
+    sessionStorage.setItem('shouldScrollToTop', 'true');
+    // Use 'categories' parameter to match the Shop page's expected filter
+    navigate(`/shop?categories=${encodeURIComponent(slug)}`);
+  };
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center mb-8">Shop by Category</h2>
-          <div className="flex justify-center items-center h-48 bg-gray-50 rounded-lg">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-              <p className="text-gray-600">Loading categories...</p>
-            </div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Shop by Category</h2>
+            <p className="text-muted-foreground text-lg">Discover amazing deals across all categories</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
+            ))}
           </div>
         </div>
       </section>
     );
   }
 
-  if (isError || !categories) {
+  if (isError || !categories.length) {
     return (
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-center mb-6">Shop by Category</h2>
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Shop by Category</h2>
+            <p className="text-muted-foreground text-lg">Discover amazing deals across all categories</p>
+          </div>
+          
+          <div className="max-w-2xl mx-auto bg-destructive/10 border border-destructive/30 rounded-xl p-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="bg-destructive/10 p-3 rounded-full mb-4">
+                <svg className="h-8 w-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">
-                  {error?.message || 'Failed to load categories. Please try again later.'}
-                </p>
-                <div className="mt-2">
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="text-sm font-medium text-red-700 hover:text-red-600 focus:outline-none"
-                  >
-                    Try again <span aria-hidden="true">&rarr;</span>
-                  </button>
-                </div>
-              </div>
+              <h3 className="text-lg font-medium text-destructive mb-2">Failed to load categories</h3>
+              <p className="text-muted-foreground mb-4">
+                {error?.message || 'There was an error loading categories. Please try again.'}
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="gap-2"
+              >
+                <span>Try Again</span>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </Button>
             </div>
           </div>
         </div>
@@ -120,28 +154,59 @@ const CategoryGrid = () => {
           <p className="text-muted-foreground text-lg">Discover amazing deals across all categories</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              className="group cursor-pointer rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <div className="relative h-32 md:h-40">
-                <img
-                  src={category.image}
-                  alt={category.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className={`absolute inset-0 bg-gradient-to-t ${category.color} opacity-60 group-hover:opacity-70 transition-opacity`} />
-                
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                  <category.icon className="h-8 w-8 mb-2" />
-                  <h3 className="font-bold text-lg mb-1">{category.name}</h3>
-                  <p className="text-sm opacity-90">{category.itemCount}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6">
+          {categories.map((category) => {
+            const Icon = category.icon;
+            return (
+              <div
+                key={category.id}
+                onClick={() => handleCategoryClick(category.slug)}
+                className="group relative overflow-hidden rounded-xl bg-card border border-border shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && handleCategoryClick(category.slug)}
+                aria-label={`Browse ${category.name}`}
+              >
+                <div className="relative h-32 md:h-40">
+                  <img
+                    src={category.image || '/placeholder-category.jpg'}
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder-category.jpg';
+                    }}
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent`} />
+                  
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center text-white">
+                    <div className={`p-3 rounded-full mb-2 bg-${category.color.split(' ')[0]}/10`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">{category.name}</h3>
+                    <p className="text-sm opacity-90">{category.itemCount}</p>
+                    
+                    <div className="mt-2 flex items-center text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <span>Shop now</span>
+                      <ChevronRight className="h-4 w-4 ml-1 -translate-x-1 group-hover:translate-x-0 transition-transform" />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+        
+        <div className="mt-12 text-center">
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => navigate('/categories')}
+            className="px-8 py-6 text-base"
+          >
+            View All Categories
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
         </div>
       </div>
     </section>

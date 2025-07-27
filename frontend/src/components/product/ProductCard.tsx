@@ -31,11 +31,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     ? Math.round((1 - product.price / product.originalPrice) * 100)
     : 0;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Only navigate if the click wasn't on a button or link
+    const target = e.target as HTMLElement;
+    if (!target.closest('button') && !target.closest('a')) {
+      window.location.href = `/products/${product.slug}`;
+    }
+  };
+
   return (
     <div 
-      className="group relative bg-card rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-border/50 hover:border-primary/20 hover:scale-[1.02] transform-gpu"
+      className="group relative bg-card rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-border/50 hover:border-primary/20 hover:scale-[1.02] transform-gpu cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
     >
       {/* Gradient overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
@@ -103,21 +112,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </Button>
         </div>
 
-        {/* Quick actions overlay */}
+        {/* Quick view button */}
         <div className={`absolute inset-x-4 bottom-4 transition-all duration-500 ${
           isHovered ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
         }`}>
-          <Button 
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              addToCart(product);
-            }}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold rounded-full shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+          <Link 
+            to={`/products/${product.slug}`}
+            className="block w-full"
+            onClick={(e) => e.stopPropagation()}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Quick Add to Cart
-          </Button>
+            <Button 
+              className="w-full bg-white/90 hover:bg-white text-foreground font-bold rounded-full shadow-lg backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Quick View
+            </Button>
+          </Link>
         </div>
 
         {/* Stock indicator */}
@@ -190,6 +200,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <Button 
             size="icon"
             className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-green-500/25 transition-all duration-300 hover:scale-110"
+            onClick={(e) => {
+              e.stopPropagation();
+              addToCart(product);
+            }}
           >
             <ShoppingCart className="h-5 w-5" />
           </Button>

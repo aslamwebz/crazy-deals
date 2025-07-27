@@ -6,8 +6,10 @@ import ProductCard from '@/components/product/ProductCard';
 import { useQuery } from '@tanstack/react-query';
 import { productApi } from '@/lib/api';
 import { Product } from '@/types/product';
+import { useNavigate } from 'react-router-dom';
 
 const FeaturedProducts = () => {
+  const navigate = useNavigate();
   const { data: products = [], isLoading, isError, error } = useQuery({
     queryKey: ['featuredProducts'],
     queryFn: async (): Promise<Product[]> => {
@@ -99,14 +101,19 @@ const FeaturedProducts = () => {
               key={product.id} 
               product={{
                 ...product,
-                image: product.primary_image || (product.images && product.images[0]?.url) || '',
+                primary_image: product.primary_image || (product.images?.[0]?.url || ''),
               }} 
             />
           ))}
         </div>
 
         <div className="text-center mt-12">
-          <Button size="lg" variant="outline">
+          <Button 
+            size="lg" 
+            variant="outline"
+            onClick={() => navigate('/shop')}
+            className="transition-all duration-300 hover:scale-105"
+          >
             View All Products
           </Button>
         </div>

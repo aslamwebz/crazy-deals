@@ -1,9 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Flame, Zap, Star } from 'lucide-react';
+import { TrendingUp, Flame, Zap, Star, ShoppingCart, Check, Loader2 } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 const TrendingSection = () => {
+  const { addToCart, isInCart } = useCart();
+  const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const navigate = useNavigate();
+  
+  const handleGrabDeal = async (e: React.MouseEvent, item: any) => {
+    e.stopPropagation();
+    try {
+      setAddingToCart(item.id);
+      await addToCart({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        compare_at_price: item.originalPrice,
+        images: [{ url: item.image }],
+        slug: item.name.toLowerCase().replace(/\s+/g, '-'),
+        total_quantity: 100,
+        sold_quantity: 0,
+      });
+      toast.success(`${item.name} added to cart!`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+  
+  const handleViewDetails = (item: any) => {
+    navigate(`/product/${item.name.toLowerCase().replace(/\s+/g, '-')}`);
+  };
   const trendingItems = [
     {
       id: 1,
@@ -74,7 +107,8 @@ const TrendingSection = () => {
           {trendingItems.map((item, index) => (
             <div 
               key={item.id}
-              className="group relative bg-white dark:bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-orange-200 dark:border-orange-800 hover:scale-105"
+              onClick={() => handleViewDetails(item)}
+              className="group relative bg-white dark:bg-card rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-orange-200 dark:border-orange-800 hover:scale-[1.02] cursor-pointer"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Trending Badge */}
@@ -101,24 +135,71 @@ const TrendingSection = () => {
                   {item.name}
                 </h3>
                 
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4">
                   <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl font-black text-green-600">${item.price}</span>
-                      <span className="text-sm text-muted-foreground line-through">${item.originalPrice}</span>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-xl font-black text-green-600">${item.price.toFixed(2)}</span>
+                      <span className="text-sm text-muted-foreground line-through">${item.originalPrice.toFixed(2)}</span>
+                      <Badge variant="outline" className="ml-2 text-xs bg-amber-50 text-amber-700 border-amber-200">
+                        {Math.round((1 - item.price / item.originalPrice) * 100)}% OFF
+                      </Badge>
                     </div>
-                    <p className="text-xs text-orange-600 font-semibold">{item.sales}</p>
+                    <div className="flex items-center">
+                      <div className="flex text-amber-400">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-current" />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-1">(24)</span>
+                    </div>
+                    <p className="text-xs text-orange-600 font-semibold flex items-center">
+                      <Flame className="h-3 w-3 mr-1" />
+                      {item.sales}
+                    </p>
                   </div>
                 </div>
 
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold rounded-xl">
-                  <Zap className="h-4 w-4 mr-2 animate-pulse" />
-                  Grab Deal
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline"
+                    className="text-xs h-9 hover:bg-gray-100 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewDetails(item);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                  <Button 
+                    className={`h-9 text-xs font-bold ${
+                      isInCart(item.id) 
+                        ? 'bg-green-500 hover:bg-green-600' 
+                        : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
+                    } text-white`}
+                    onClick={(e) => handleGrabDeal(e, item)}
+                    disabled={addingToCart === item.id}
+                  >
+                    {addingToCart === item.id ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : isInCart(item.id) ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        In Cart
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                        Grab Deal
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-400/20 to-red-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+
             </div>
           ))}
         </div>
@@ -141,10 +222,21 @@ const TrendingSection = () => {
 
         {/* CTA */}
         <div className="text-center">
-          <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-8 py-4 rounded-full text-lg shadow-xl hover:shadow-purple-500/25 transition-all duration-300 hover:scale-105">
-            <Star className="h-5 w-5 mr-2 animate-spin" />
+          <Button 
+            size="lg" 
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-8 py-6 rounded-xl text-base sm:text-lg shadow-lg hover:shadow-orange-500/25 transition-all duration-300 hover:scale-[1.02] transform-gpu"
+            onClick={() => navigate('/deals?sort=trending')}
+          >
+            <Zap className="h-5 w-5 mr-2 animate-pulse" />
             View All Trending Deals
+            <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs font-normal">
+              {trendingItems.length}+ Deals
+            </span>
           </Button>
+          
+          <p className="mt-4 text-sm text-muted-foreground">
+            Updated hourly with the hottest deals on the internet
+          </p>
         </div>
       </div>
     </section>

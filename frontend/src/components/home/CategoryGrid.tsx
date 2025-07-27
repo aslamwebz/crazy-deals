@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Smartphone, Shirt, Home, Sparkles, Gamepad2, Book, Car, Gift, Loader2, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { productApi } from '@/lib/api';
 
+// Base category type from API
+type ApiCategory = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+};
+
+// Enhanced category type for the component
 type Category = {
   id: number;
   name: string;
@@ -18,14 +28,8 @@ type Category = {
 
 type ApiResponse = {
   success: boolean;
-  message: string;
-  data: Array<{
-    id: number;
-    name: string;
-    slug: string;
-    description: string;
-    image: string;
-  }>;
+  message?: string;
+  data?: ApiCategory[];
 };
 
 // Map category names to icons
@@ -55,34 +59,96 @@ const categoryColors = [
 const CategoryGrid = () => {
   const navigate = useNavigate();
   
-  const { data: categories = [], isLoading, isError, error } = useQuery<Category[]>({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      try {
-        const response = await productApi.getCategories() as unknown as ApiResponse;
-        
-        if (!response?.success) {
-          throw new Error(response?.message || 'Failed to load categories');
-        }
-        
-        if (!Array.isArray(response.data)) {
-          throw new Error('Invalid categories data format');
-        }
-        
-        return response.data.map((category, index) => ({
-          ...category,
-          icon: categoryIcons[category.name] || Gift,
-          color: categoryColors[index % categoryColors.length],
-          itemCount: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 9)}k+ items`
-        }));
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-        throw new Error(err instanceof Error ? err.message : 'Failed to load categories. Please try again later.');
+  const fetchCategories = async (): Promise<Category[]> => {
+    try {
+      console.log('Fetching categories...');
+      
+      // Make a direct fetch call to see the raw response
+      const response = await fetch('http://localhost:8084/api/categories');
+      const responseData = await response.json();
+      console.log('Raw Categories API Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    },
-    retry: 2,
+      
+      // Handle different response formats
+      let categoriesList: any[] = [];
+      
+      // If the response is an array, use it directly
+      if (Array.isArray(responseData)) {
+        categoriesList = responseData;
+      } 
+      // If the response has a data property that's an array
+      else if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        if (Array.isArray(responseData.data)) {
+          categoriesList = responseData.data;
+        } else {
+          console.warn('Unexpected data format in response.data:', responseData.data);
+        }
+      }
+      
+      // If we still don't have categories, try to extract them from the response
+      if (!categoriesList.length) {
+        console.warn('No categories found in the expected format, attempting to parse response:', responseData);
+        // Try to extract categories from the response if they're nested differently
+        const possibleCategories = Object.values(responseData).find(Array.isArray);
+        if (Array.isArray(possibleCategories)) {
+          categoriesList = possibleCategories;
+        }
+      }
+      
+      if (!categoriesList.length) {
+        throw new Error('No categories found in the response');
+      }
+      
+      console.log('Processed categories:', categoriesList);
+      
+      // Transform API categories to component categories
+      return categoriesList.map((category: any, index: number) => ({
+        id: category.id || index,
+        name: category.name || 'Unnamed Category',
+        slug: category.slug || `category-${index}`,
+        description: category.description || '',
+        image: category.image || '/placeholder-category.jpg',
+        icon: categoryIcons[category.name] || Gift,
+        color: categoryColors[index % categoryColors.length],
+        itemCount: `${Math.floor(Math.random() * 5) + 1}.${Math.floor(Math.random() * 9)}k+ items`
+      }));
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error('Error in categories query:', {
+        error: errorMessage,
+        originalError: err,
+        timestamp: new Date().toISOString()
+      });
+      throw new Error('Failed to load categories. Please try again later.');
+    }
+  };
+
+  const { 
+    data: categories = [], 
+    isLoading, 
+    isError, 
+    error 
+  } = useQuery<Category[], Error>({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    retry: 1,
     refetchOnWindowFocus: false
   });
+  
+  // Log errors to console when they occur
+  useEffect(() => {
+    if (error) {
+      console.error('Categories query error:', error);
+    }
+  }, [error]);
   
   const handleCategoryClick = (slug: string) => {
     // Store scroll position in session storage before navigation

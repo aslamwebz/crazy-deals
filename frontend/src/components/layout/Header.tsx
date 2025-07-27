@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Menu, X, Zap, Filter, LogIn, ShoppingBag, Heart, Settings, LogOut } from 'lucide-react';
+import { Search, User, Menu, X, Zap, Filter, LogIn, ShoppingBag, Heart, Settings, LogOut, Loader2, Star, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { CartIcon } from '../cart/CartIcon';
 import { WishlistIcon } from '../wishlist/WishlistIcon';
@@ -40,10 +40,50 @@ const defaultCategories: CategoryItem[] = [
 ];
 
 const Header = () => {
+  const navigate = useNavigate();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  // Search products and categories
+  const { data: searchData, isLoading: isSearching } = useQuery({
+    queryKey: ['search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery.trim()) return { products: [], categories: [] };
+      
+      try {
+        // Use the productApi client for both products and categories
+        const [products, categories] = await Promise.all([
+          productApi.searchProducts(searchQuery),
+          productApi.getCategories()
+        ]);
+
+        // Filter categories client-side based on search query
+        const filteredCategories = Array.isArray(categories) 
+          ? categories.filter(category => 
+              category.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (category.description && category.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            )
+          : [];
+
+        return { 
+          products: Array.isArray(products) ? products : [], 
+          categories: filteredCategories 
+        };
+      } catch (error) {
+        console.error('Search error:', error);
+        return { products: [], categories: [] };
+      }
+    },
+    enabled: searchQuery.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+  
+  const searchResults = searchData?.products || [];
+  const categoryResults = searchData?.categories || [];
 
   // Fetch categories from the backend
   const { data: categories = defaultCategories, isLoading } = useQuery<CategoryItem[]>({
@@ -104,8 +144,40 @@ const Header = () => {
     .filter((category): category is CategoryItem => category.is_active !== false)
     .sort((a, b) => (a.order || 99) - (b.order || 99));
 
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setShowSearchResults(e.target.value.length > 0);
+  };
+
+  // Handle search result click
+  const handleSearchResultClick = (slug: string, isCategory = false) => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+    if (isCategory) {
+      navigate(`/shop?category=${slug}`);
+    } else {
+      navigate(`/product/${slug}`);
+    }
+  };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.search-container')) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b shadow-lg">
+    <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b shadow-lg">
       {/* Flash banner */}
       <div className="bg-gradient-to-r from-destructive via-red-500 to-orange-500 text-white text-center py-1.5 text-xs font-bold relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
@@ -142,23 +214,127 @@ const Header = () => {
           </div>
 
           {/* Enhanced search bar */}
-          <div className="hidden md:flex flex-1 max-w-2xl mx-8 relative">
-            <div className={`relative w-full transition-all duration-300 ${isSearchFocused ? 'scale-105' : ''}`}>
+          <div className="hidden md:flex flex-1 max-w-2xl mx-8 relative search-container">
+            <div className={`relative w-full transition-all duration-300 z-[100] ${isSearchFocused ? 'scale-105' : ''}`}>
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative flex">
                 <Input 
                   placeholder="Search 1M+ products, brands, deals..."
                   className="pl-10 pr-16 h-10 text-sm rounded-full border-2 bg-muted/50 focus:bg-background transition-all"
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
+                  onFocus={() => {
+                    setIsSearchFocused(true);
+                    if (searchQuery) setShowSearchResults(true);
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setIsSearchFocused(false), 200);
+                  }}
+                  value={searchQuery}
+                  onChange={handleSearchChange}
                 />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                <div className="absolute right-1.5 top-1.5">
-                  <Button size="sm" className="rounded-full h-7 px-2 text-xs">
-                    <Filter className="h-3 w-3 mr-1" />
-                    Filter
-                  </Button>
-                </div>
+                {isSearching ? (
+                  <Loader2 className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                )}
+                
+                {/* Search results dropdown */}
+                {showSearchResults && searchQuery && (
+                  <div className="absolute left-0 right-0 top-12 bg-background rounded-xl shadow-2xl border border-border overflow-hidden z-[9999] max-h-[500px] overflow-y-auto bg-white dark:bg-slate-900">
+                    {isSearching ? (
+                      <div className="p-6 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        <span>Searching...</span>
+                      </div>
+                    ) : searchResults.length > 0 || categoryResults.length > 0 ? (
+                      <>
+                        {/* Categories Section */}
+                        {categoryResults.length > 0 && (
+                          <div className="border-b border-border">
+                            <div className="p-2 bg-muted/30">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                                Categories
+                              </p>
+                            </div>
+                            <div className="divide-y divide-border">
+                              {categoryResults.slice(0, 3).map((category: any) => (
+                                <div
+                                  key={`cat-${category.id}`}
+                                  className="flex items-center p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                                  onClick={() => handleSearchResultClick(category.slug, true)}
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3">
+                                    <span className="text-lg">{getCategoryIcon(category.slug)}</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{category.name}</p>
+                                    <p className="text-xs text-muted-foreground">Category</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Products Section */}
+                        {searchResults.length > 0 && (
+                          <div>
+                            <div className="p-2 bg-muted/30">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                                Products
+                              </p>
+                            </div>
+                            <div className="divide-y divide-border">
+                              {searchResults.slice(0, 5).map((product: any) => (
+                                <div 
+                                  key={`prod-${product.id}`}
+                                  className="p-3 hover:bg-muted/30 cursor-pointer flex items-center"
+                                  onClick={() => handleSearchResultClick(product.slug)}
+                                >
+                                  <div className="w-10 h-10 bg-muted rounded-md mr-3 overflow-hidden flex-shrink-0">
+                                    {product.primary_image && (
+                                      <img 
+                                        src={product.primary_image} 
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{product.name}</p>
+                                    <div className="flex items-center">
+                                      <span className="text-sm font-medium">${product.price?.toFixed(2) || '0.00'}</span>
+                                      {product.originalPrice && product.originalPrice > product.price && (
+                                        <span className="text-xs text-muted-foreground line-through ml-2">
+                                          ${product.originalPrice.toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* View All Results Link */}
+                        <div className="p-3 border-t border-border bg-muted/10">
+                          <Link 
+                            to={`/shop?q=${encodeURIComponent(searchQuery)}`} 
+                            className="text-sm font-medium text-primary flex items-center justify-center"
+                            onClick={() => setShowSearchResults(false)}
+                          >
+                            View all {searchResults.length} results for "{searchQuery}" <ChevronRight className="ml-1 h-4 w-4" />
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="p-6 text-center">
+                        <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+                        <p className="text-sm text-muted-foreground mt-1">Try different keywords or check your spelling</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -308,13 +484,74 @@ const Header = () => {
         </nav>
 
         {/* Mobile search */}
-        <div className="md:hidden py-4 border-t">
+        <div className="md:hidden py-4 border-t search-container">
           <div className="relative">
             <Input 
               placeholder="Search deals..."
               className="pl-10 pr-4 h-10 rounded-full bg-muted/50"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setShowSearchResults(true)}
             />
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            {isSearching ? (
+              <Loader2 className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground animate-spin" />
+            ) : (
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+            )}
+            
+            {/* Mobile search results */}
+            {showSearchResults && searchQuery && (
+              <div className="absolute left-0 right-0 top-12 bg-background rounded-xl shadow-2xl border border-border overflow-hidden z-50 max-h-[400px] overflow-y-auto">
+                {searchResults.length > 0 ? (
+                  <>
+                    <div className="p-2 border-b border-border">
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+                        {searchResults.length} results for "{searchQuery}"
+                      </p>
+                    </div>
+                    <div className="divide-y divide-border">
+                      {searchResults.slice(0, 5).map((product: any) => (
+                        <div 
+                          key={product.id}
+                          className="p-3 hover:bg-muted/50 cursor-pointer"
+                          onClick={() => handleSearchResultClick(product.slug)}
+                        >
+                          <div className="flex items-center">
+                            <div className="w-10 h-10 bg-muted rounded-md mr-3 overflow-hidden">
+                              {product.primary_image && (
+                                <img 
+                                  src={product.primary_image} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{product.name}</p>
+                              <p className="text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-3 border-t border-border bg-muted/20">
+                      <Link 
+                        to={`/shop?q=${encodeURIComponent(searchQuery)}`} 
+                        className="text-sm font-medium text-primary flex items-center justify-center"
+                        onClick={() => setShowSearchResults(false)}
+                      >
+                        View all results for "{searchQuery}" <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    </div>
+                  </>
+                ) : searchQuery && !isSearching ? (
+                  <div className="p-6 text-center">
+                    <p className="text-muted-foreground">No results found for "{searchQuery}"</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try different keywords or check your spelling</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </div>

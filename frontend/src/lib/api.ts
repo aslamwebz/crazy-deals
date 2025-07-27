@@ -144,6 +144,15 @@ export const productApi = {
       { id: 'hp', name: 'HP', count: 19 },
     ]);
   },
+  
+  searchProducts: (query: string): Promise<Product[]> => {
+    return api.get<ApiResponse<Product[]>>(`/products?search=${encodeURIComponent(query)}`)
+      .then(response => response as unknown as Product[])
+      .catch(error => {
+        console.error('Search products error:', error);
+        return [];
+      });
+  },
 };
 
 export default api;
